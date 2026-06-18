@@ -14,6 +14,9 @@
 # define SMALL_ZONE_PAGE_MULT	32
 # define LARGE_ZONE_PAGE_MULT	128
 
+# define ALIGNMENT_MULT			16
+# define MIN_ALLOC_SIZE			ALIGNMENT_MULT
+
 // STRUCTS
 typedef enum e_type
 {
@@ -40,10 +43,11 @@ typedef struct s_zone
 extern t_zone	*g_zones;
 
 // UTILS.C
-size_t	get_zone_size(t_type type);
-size_t	get_block_max_size(t_type type);
+size_t	get_zone_size(t_type type, size_t size);
+size_t	mem_aligned(size_t size);
+size_t	get_block_min_size(t_type type);
 
-void	*allocate_memory(int type, size_t size);
+void	*allocate_memory(t_type type, size_t size);
 
 // USER FUNCTIONS
 void	*ft_malloc(size_t size);
