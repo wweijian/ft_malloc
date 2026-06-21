@@ -10,8 +10,11 @@ TEST_NAME	= malloc_tests
 SRC_DIR		= srcs
 OBJ_DIR		= obj
 
-SRCS		= ft_malloc.c \
-		  $(SRC_DIR)/allocate_memory.c \
+SRCS		= $(SRC_DIR)/ft_free.c \
+		  $(SRC_DIR)/ft_malloc.c \
+		  $(SRC_DIR)/ft_realloc.c \
+		  $(SRC_DIR)/ft_show_alloc_mem.c \
+		  $(SRC_DIR)/print_num.c \
 		  $(SRC_DIR)/utils.c
 OBJS		= $(SRCS:%.c=$(OBJ_DIR)/%.o)
 

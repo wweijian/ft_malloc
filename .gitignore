@@ -1,7 +1,6 @@
 en.subject.pdf 
 obj/
-/allocate_memory.o
 /libft_malloc.so
 /libft_malloc_arm64_Darwin.so
 /malloc_tests
-/utils.o
+**.o

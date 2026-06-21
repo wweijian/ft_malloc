@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 typedef enum e_test_result
 {
@@ -33,6 +34,130 @@ typedef struct s_test
 static int	is_aligned(void *ptr)
 {
 	return ((uintptr_t)ptr % ALIGNMENT_MULT == 0);
+}
+
+static int	capture_show_alloc_mem(char *buffer, size_t buffer_size)
+{
+	int		pipe_fd[2];
+	int		stdout_copy;
+	ssize_t	bytes_read;
+
+	if (pipe(pipe_fd) == -1)
+		return -1;
+	stdout_copy = dup(STDOUT_FILENO);
+	if (stdout_copy == -1)
+	{
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		return -1;
+	}
+	fflush(stdout);
+	if (dup2(pipe_fd[1], STDOUT_FILENO) == -1)
+	{
+		close(pipe_fd[0]);
+		close(pipe_fd[1]);
+		close(stdout_copy);
+		return -1;
+	}
+	close(pipe_fd[1]);
+	show_alloc_mem();
+	fflush(stdout);
+	if (dup2(stdout_copy, STDOUT_FILENO) == -1)
+	{
+		close(pipe_fd[0]);
+		close(stdout_copy);
+		return -1;
+	}
+	close(stdout_copy);
+	bytes_read = read(pipe_fd[0], buffer, buffer_size - 1);
+	close(pipe_fd[0]);
+	if (bytes_read < 0)
+		return -1;
+	buffer[bytes_read] = '\0';
+	return 0;
+}
+
+TEST_CASE(test_show_alloc_mem_prints_allocations)
+{
+	char	buffer[4096];
+
+	EXPECT(ft_malloc(TINY_MAX_BLOCK_SIZE + ALIGNMENT_MULT) != NULL);
+	EXPECT(ft_malloc(ALIGNMENT_MULT * 4) != NULL);
+	EXPECT(capture_show_alloc_mem(buffer, sizeof(buffer)) == 0);
+	EXPECT(strstr(buffer, "SMALL : ") != NULL);
+	EXPECT(strstr(buffer, "TINY : ") != NULL);
+	EXPECT(strstr(buffer, "144 byte") != NULL);
+	EXPECT(strstr(buffer, "64 byte") != NULL);
+	EXPECT(strstr(buffer, "Total : ") != NULL);
+	return TEST_PASS;
+}
+
+TEST_CASE(test_free_marks_block_free)
+{
+	void	*first;
+	void	*second;
+	t_block	*first_block;
+	t_block	*second_block;
+
+	first = ft_malloc(32);
+	second = ft_malloc(32);
+	EXPECT(first != NULL);
+	EXPECT(second != NULL);
+	first_block = (t_block *)((char *)first - mem_aligned(sizeof(t_block)));
+	second_block = (t_block *)((char *)second - mem_aligned(sizeof(t_block)));
+	EXPECT(first_block->free == 0);
+	EXPECT(second_block->free == 0);
+	ft_free(first);
+	EXPECT(first_block->free == 1);
+	EXPECT(second_block->free == 0);
+	ft_free(NULL);
+	ft_free(first);
+	EXPECT(first_block->free == 1);
+	return TEST_PASS;
+}
+
+TEST_CASE(test_realloc_preserves_data_when_growing)
+{
+	unsigned char	*ptr;
+	unsigned char	*new_ptr;
+	size_t			i;
+
+	ptr = ft_malloc(32);
+	EXPECT(ptr != NULL);
+	i = 0;
+	while (i < 32)
+	{
+		ptr[i] = (unsigned char)(0xa0 + i);
+		i++;
+	}
+	new_ptr = ft_realloc(ptr, 512);
+	EXPECT(new_ptr != NULL);
+	EXPECT(is_aligned(new_ptr));
+	i = 0;
+	while (i < 32)
+	{
+		EXPECT(new_ptr[i] == (unsigned char)(0xa0 + i));
+		i++;
+	}
+	return TEST_PASS;
+}
+
+TEST_CASE(test_realloc_null_behaves_like_malloc)
+{
+	unsigned char	*ptr;
+	size_t			i;
+
+	ptr = ft_realloc(NULL, 48);
+	EXPECT(ptr != NULL);
+	EXPECT(is_aligned(ptr));
+	i = 0;
+	while (i < 48)
+	{
+		ptr[i] = (unsigned char)i;
+		EXPECT(ptr[i] == (unsigned char)i);
+		i++;
+	}
+	return TEST_PASS;
 }
 
 TEST_CASE(test_malloc_returns_aligned_writable_memory)
@@ -172,6 +297,17 @@ int	main(void)
 		{"boundary sizes are allocatable",
 			test_boundary_sizes_are_allocatable,
 			test_boundary_sizes_are_allocatable_line},
+		{"show_alloc_mem prints allocations",
+			test_show_alloc_mem_prints_allocations,
+			test_show_alloc_mem_prints_allocations_line},
+		{"free marks block free", test_free_marks_block_free,
+			test_free_marks_block_free_line},
+		{"realloc preserves data when growing",
+			test_realloc_preserves_data_when_growing,
+			test_realloc_preserves_data_when_growing_line},
+		{"realloc null behaves like malloc",
+			test_realloc_null_behaves_like_malloc,
+			test_realloc_null_behaves_like_malloc_line},
 		{"malloc returns aligned writable memory",
 			test_malloc_returns_aligned_writable_memory,
 			test_malloc_returns_aligned_writable_memory_line},

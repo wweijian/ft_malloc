@@ -3,12 +3,7 @@
 #include <unistd.h>
 #include <stdio.h>
 
-size_t	mem_aligned(size_t size)
-{
-	if (size % ALIGNMENT_MULT == 0)
-		return size;
-	return (ALIGNMENT_MULT - (size % ALIGNMENT_MULT) + size);
-}
+t_zone	*g_zones = NULL;
 
 t_block	*next_available_block(t_block *block, size_t size)
 {
@@ -27,16 +22,19 @@ t_block	*next_available_block(t_block *block, size_t size)
 t_zone	*new_zone(t_type type, size_t size)
 {
 	t_zone	*zone;
+	size_t	zone_size;
 
-	zone = mmap(NULL, get_zone_size(type, size),
+	zone_size = get_zone_size(type, size);
+	zone = mmap(NULL, zone_size,
 				 PROT_READ | PROT_WRITE,
 				 MAP_ANON | MAP_PRIVATE,
 				 -1, 0);
 	if (zone == MAP_FAILED)
 		return NULL;
 	zone->type = type;
+	zone->size = zone_size;
 	zone->block = (t_block *) ((char *)zone + mem_aligned(sizeof(t_zone)));
-	zone->block->size = get_zone_size(type, size) - mem_aligned(sizeof(t_zone)) - mem_aligned(sizeof(t_block));
+	zone->block->size = zone_size - mem_aligned(sizeof(t_zone)) - mem_aligned(sizeof(t_block));
 	zone->block->free = 1;
 	zone->block->next = NULL;
 	zone->next = NULL;
@@ -97,10 +95,12 @@ t_block	*split_memory(t_type type, t_block *block, size_t size)
 	return block;
 }
 
-void	*allocate_memory(t_type type, size_t size)
+void	*ft_malloc(size_t size)
 {
 	t_block	*block;
+	t_type	type;
 	
+	type = get_zone_type(size);
 	size = mem_aligned(size);
 	block = find_block(type, size);
 	block = split_memory(type, block, size);
