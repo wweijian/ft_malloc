@@ -5,14 +5,15 @@ int	check_extensible(t_zone *zone, t_block *block, size_t size)
 	t_block	*search;
 
 	search = zone->block;
+	size = mem_aligned(size);
 	while (search)
 	{
 		if (search == block)
 		{
-			if (search->size >= size)
+			if (search->actual_size >= size)
 				return 2;
 			if (search->next && search->next->free
-				&& search->next->size + mem_aligned(sizeof(t_block)) + search->size >= size)
+				&& search->next->actual_size + mem_aligned(sizeof(t_block)) + search->actual_size >= size)
 				return 1;
 			return 0;
 		}
@@ -48,10 +49,11 @@ void	*reallocate_memory(t_block *block, void *ptr, size_t size)
 	void	*new;
 
 	new = ft_malloc(size);
+	size = mem_aligned(size);
 	if (!new)
 		return NULL;
-	if (size >= block->size)
-		size = block->size;
+	if (size >= block->requested_size)
+		size = block->requested_size;
 	ft_memcpy(new, ptr, size);
 	ft_free(ptr);
 	return new;
@@ -66,7 +68,7 @@ t_block *merge_memory_block(t_zone *zone, t_block *block)
 	{
 		if (search == block)
 		{
-			block->size += block->next->size + mem_aligned(sizeof(t_block));
+			block->actual_size += block->next->actual_size + mem_aligned(sizeof(t_block));
 			block->next = block->next->next;
 			break ;
 		}
@@ -85,7 +87,6 @@ void	*ft_realloc(void *ptr, size_t size)
 	zone = find_zone(ptr);
 	if (!zone)
 		return NULL;
-	size = mem_aligned(size);
 	block = (t_block *)((char *) ptr - mem_aligned(sizeof(t_block)));
 	switch (check_extensible(zone, block, size))
 	{
@@ -93,6 +94,7 @@ void	*ft_realloc(void *ptr, size_t size)
 			return reallocate_memory(block, ptr, size);
 		case 1:
 			merge_memory_block(zone, block);
+			/* fallthrough */
 		case 2:
 			split_memory(zone->type, block, size);
 			return ptr;

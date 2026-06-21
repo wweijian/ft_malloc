@@ -12,7 +12,7 @@ t_block	*next_available_block(t_block *block, size_t size)
 	search = block;
 	while (search)
 	{
-		if (search->free && search->size >= size)
+		if (search->free && search->actual_size >= size)
 			return search;
 		search = search->next;
 	}
@@ -23,8 +23,10 @@ t_zone	*new_zone(t_type type, size_t size)
 {
 	t_zone	*zone;
 	size_t	zone_size;
+	size_t	aligned_size;
 
-	zone_size = get_zone_size(type, size);
+	aligned_size = mem_aligned(size);
+	zone_size = get_zone_size(type, aligned_size);
 	zone = mmap(NULL, zone_size,
 				 PROT_READ | PROT_WRITE,
 				 MAP_ANON | MAP_PRIVATE,
@@ -34,7 +36,8 @@ t_zone	*new_zone(t_type type, size_t size)
 	zone->type = type;
 	zone->size = zone_size;
 	zone->block = (t_block *) ((char *)zone + mem_aligned(sizeof(t_zone)));
-	zone->block->size = zone_size - mem_aligned(sizeof(t_zone)) - mem_aligned(sizeof(t_block));
+	zone->block->requested_size = 0;
+	zone->block->actual_size = zone_size - mem_aligned(sizeof(t_zone)) - mem_aligned(sizeof(t_block));
 	zone->block->free = 1;
 	zone->block->next = NULL;
 	zone->next = NULL;
@@ -48,11 +51,12 @@ t_block	*find_block(t_type type, size_t size)
 	t_zone	*zone;
 	t_block	*block;
 
+	size = mem_aligned(size);
 	search = g_zones;
 	last_zone = NULL;
-	while (type != LARGE && search)
+	while (search)
 	{
-		if (search->type == type)
+		if (type != LARGE && search->type == type)
 		{
 			block = next_available_block(search->block, size);
 			if (block)
@@ -81,17 +85,22 @@ t_block	*split_memory(t_type type, t_block *block, size_t size)
 	new = NULL;
 	block->free = 0;
 	if (type == LARGE)
+	{
+		block->requested_size = size;
 		return block;
-	leftover = block->size - size;
+	}
+	leftover = block->actual_size - mem_aligned(size);
 	if (leftover >= mem_aligned(sizeof(t_block)) + get_block_min_size(type))
 	{
-		new = (t_block *)((char *) block + mem_aligned(sizeof(t_block)) + size);
-		new->size = leftover - mem_aligned(sizeof(t_block));
+		new = (t_block *)((char *) block + mem_aligned(sizeof(t_block)) + mem_aligned(size));
+		new->requested_size = 0;
+		new->actual_size = leftover - mem_aligned(sizeof(t_block));
 		new->free = 1;
 		new->next = block->next;
-		block->size = size;
+		block->actual_size = mem_aligned(size);
 		block->next = new;
 	}
+	block->requested_size = size;
 	return block;
 }
 
@@ -101,7 +110,6 @@ void	*ft_malloc(size_t size)
 	t_type	type;
 	
 	type = get_zone_type(size);
-	size = mem_aligned(size);
 	block = find_block(type, size);
 	block = split_memory(type, block, size);
 

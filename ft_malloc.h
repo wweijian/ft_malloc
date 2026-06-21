@@ -25,7 +25,8 @@ typedef enum e_type
 
 typedef struct s_block
 {
-	size_t			size;
+	size_t			actual_size;
+	size_t			requested_size;
 	int				free;
 	struct s_block	*next;
 }	t_block;

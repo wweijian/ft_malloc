@@ -21,11 +21,11 @@ size_t	print_blocks(t_block *block)
 		{
 			print_address((char *) search + mem_aligned(sizeof(t_block)));
 			write(1, " - ", 3);
-			print_address((char *) search + mem_aligned(sizeof(t_block)) + search->size);
+			print_address((char *) search + mem_aligned(sizeof(t_block)) + search->requested_size);
 			write(1, " : ", 3);
-			ft_putnbr(search->size);
-			write(1, " bytes\n", 5);
-			size += search->size;
+			ft_putnbr(search->requested_size);
+			write(1, " bytes\n", 6);
+			size += search->requested_size;
 		}
 		search = search->next;
 	}
@@ -60,4 +60,5 @@ void show_alloc_mem()
 	}
 	write(1, "Total : \n", 9);
 	ft_putnbr(total_size);
+	write(1, " bytes\n", 6);
 }

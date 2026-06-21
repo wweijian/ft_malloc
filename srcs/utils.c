@@ -38,7 +38,7 @@ size_t	get_block_min_size(t_type type)
 			size = 0;
 			break;
 		default:
-			size = TINY_MAX_BLOCK_SIZE + 1;
+			size = mem_aligned(TINY_MAX_BLOCK_SIZE + 1);
 			break;
 	}
 	return size;
@@ -46,6 +46,7 @@ size_t	get_block_min_size(t_type type)
 
 t_type	get_zone_type(size_t size)
 {
+	size = mem_aligned(size);
 	if (size <= TINY_MAX_BLOCK_SIZE)
 		return TINY;
 	else if (size <= SMALL_MAX_BLOCK_SIZE)

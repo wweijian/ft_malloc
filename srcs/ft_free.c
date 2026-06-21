@@ -60,6 +60,7 @@ int	free_block(t_zone *zone, void *ptr)
 			if (search->free == 1)
 				return 0;
 			search->free = 1;
+			search->requested_size = 0;
 			return 1;
 		}
 		search = search->next;
@@ -76,7 +77,7 @@ void	coalesce_block(t_zone *zone)
 	{
 		if (search->free == 1 && search->next && search->next->free ==1)
 		{
-			search->size += search->next->size + mem_aligned(sizeof(t_block));
+			search->actual_size += search->next->actual_size + mem_aligned(sizeof(t_block));
 			search->next = search->next->next;
 		}
 		else
