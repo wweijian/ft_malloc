@@ -85,14 +85,21 @@ void	coalesce_block(t_zone *zone)
 	}
 }
 
-void	ft_free(void *ptr)
+void	free_memory(void *ptr)
 {
 	t_zone	*search;
-	
+
 	search = find_zone(ptr);
 	if (search && free_block(search, ptr))
 	{
 		coalesce_block(search);
 		unmap_zone(search);
 	}
+}
+
+void	ft_free(void *ptr)
+{
+	pthread_mutex_lock(&g_malloc_mutex);
+	free_memory(ptr);
+	pthread_mutex_unlock(&g_malloc_mutex);
 }

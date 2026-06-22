@@ -48,14 +48,17 @@ void	*reallocate_memory(t_block *block, void *ptr, size_t size)
 {
 	void	*new;
 
-	new = ft_malloc(size);
+	new = allocate_memory(size);
 	size = mem_aligned(size);
 	if (!new)
+	{
+		pthread_mutex_unlock(&g_malloc_mutex);
 		return NULL;
+	}
 	if (size >= block->requested_size)
 		size = block->requested_size;
 	ft_memcpy(new, ptr, size);
-	ft_free(ptr);
+	free_memory(ptr);
 	return new;
 }
 
@@ -81,24 +84,31 @@ void	*ft_realloc(void *ptr, size_t size)
 {
 	t_zone	*zone;
 	t_block	*block;
+	void	*new_ptr;
 
 	if (!ptr)
 		return ft_malloc(size);
+	pthread_mutex_lock(&g_malloc_mutex);
 	zone = find_zone(ptr);
 	if (!zone)
+	{
+		pthread_mutex_unlock(&g_malloc_mutex);
 		return NULL;
+	}
 	block = (t_block *)((char *) ptr - mem_aligned(sizeof(t_block)));
 	switch (check_extensible(zone, block, size))
 	{
 		case 0:
-			return reallocate_memory(block, ptr, size);
+			new_ptr = reallocate_memory(block, ptr, size);
 		case 1:
 			merge_memory_block(zone, block);
 			/* fallthrough */
 		case 2:
 			split_memory(zone->type, block, size);
-			return ptr;
+			break ;
 		default:
-			return NULL;
+			new_ptr = NULL;
 	}
+	pthread_mutex_unlock(&g_malloc_mutex);
+	return new_ptr;
 }

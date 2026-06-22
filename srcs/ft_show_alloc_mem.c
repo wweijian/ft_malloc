@@ -37,6 +37,7 @@ void show_alloc_mem()
 	t_zone	*search;
 	size_t	total_size;
 
+	pthread_mutex_lock(&g_malloc_mutex);
 	search = g_zones;
 	total_size = 0;
 	while (search)
@@ -61,4 +62,5 @@ void show_alloc_mem()
 	write(1, "Total : ", 8);
 	ft_putnbr(total_size);
 	write(1, " bytes\n", 7);
+	pthread_mutex_unlock(&g_malloc_mutex);
 }

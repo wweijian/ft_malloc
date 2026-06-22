@@ -3,6 +3,7 @@
 
 # include <stddef.h>
 # include <unistd.h>
+# include <pthread.h>
 
 // MACROS
 
@@ -41,6 +42,7 @@ typedef struct s_zone
 
 // GLOBAL VARIABLE
 extern t_zone	*g_zones;
+extern pthread_mutex_t	g_malloc_mutex;
 
 // UTILS.C
 size_t	get_zone_size(t_type type, size_t size);
@@ -50,7 +52,11 @@ t_type	get_zone_type(size_t size);
 t_zone	*find_zone(void *ptr);
 
 // ft_malloc.c
+void	*allocate_memory(size_t size);
 t_block	*split_memory(t_type type, t_block *block, size_t size);
+
+// ft_free.c
+void	free_memory(void *ptr);
 
 // PRINT_NUM.C
 void	ft_puthex(unsigned long long hex);

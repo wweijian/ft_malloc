@@ -1,9 +1,11 @@
 #include "ft_malloc.h"
+#include <pthread.h>
 #include <sys/mman.h>
 #include <unistd.h>
 #include <stdio.h>
 
 t_zone	*g_zones = NULL;
+pthread_mutex_t g_malloc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 t_block	*next_available_block(t_block *block, size_t size)
 {
@@ -104,16 +106,25 @@ t_block	*split_memory(t_type type, t_block *block, size_t size)
 	return block;
 }
 
-void	*ft_malloc(size_t size)
+void	*allocate_memory(size_t size)
 {
 	t_block	*block;
 	t_type	type;
-	
+
 	type = get_zone_type(size);
 	block = find_block(type, size);
 	block = split_memory(type, block, size);
-
 	if (!block)
 		return NULL;
 	return (void *)((char *) block + mem_aligned(sizeof(t_block)));
+}
+
+void	*ft_malloc(size_t size)
+{
+	void	*res;
+
+	pthread_mutex_lock(&g_malloc_mutex);
+	res = allocate_memory(size);
+	pthread_mutex_unlock(&g_malloc_mutex);
+	return res;
 }
