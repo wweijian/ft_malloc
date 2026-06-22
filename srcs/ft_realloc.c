@@ -100,6 +100,7 @@ void	*ft_realloc(void *ptr, size_t size)
 	{
 		case 0:
 			new_ptr = reallocate_memory(block, ptr, size);
+			break ;
 		case 1:
 			merge_memory_block(zone, block);
 			/* fallthrough */
