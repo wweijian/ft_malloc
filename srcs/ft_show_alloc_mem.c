@@ -60,5 +60,5 @@ void show_alloc_mem()
 	}
 	write(1, "Total : ", 8);
 	ft_putnbr(total_size);
-	write(1, " bytes\n", 6);
+	write(1, " bytes\n", 7);
 }
